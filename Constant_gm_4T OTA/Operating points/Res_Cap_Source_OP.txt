@@ -1,0 +1,50 @@
+
+signal            OP("/R0" "??")
+
+i                    92.3828u       
+pwr                  76.7173u       
+res                   8.989K        
+v                   830.429m        
+
+signal            OP("/R1" "??")
+i                    92.3828u       
+pwr                 853.457n        
+res                 100             
+v                     9.23828m      
+
+signal            OP("/R2" "??")
+i                   105.659u        
+pwr                   1.11638u      
+res                 100             
+v                    10.5659m       
+
+signal            OP("/R3" "??")
+i                   105.659u        
+pwr                 100.351u        
+res                   8.989K        
+v                   949.767m        
+
+signal            OP("/R4" "??")
+i                   -43.5785n       
+pwr                   1.89909n      
+res                   1M            
+v                   -43.5785m       
+
+signal            OP("/R6" "??")
+i                    43.5785n       
+pwr                   1.89909n      
+res                   1M            
+v                    43.5785m       
+
+signal            OP("/C1" "??")
+cap               2p                
+
+signal            OP("/I1" "??")
+i                    94u            
+pwr                  74.9107u       
+v                   796.922m        
+
+signal            OP("/I2" "??")
+i                    94u            
+pwr                  86.0965u       
+v                   915.921m        
