@@ -1,0 +1,545 @@
+\documentclass[12pt,a4paper]{article}
+
+% ─── Packages ───────────────────────────────────────────────────────────────
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{setspace}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{siunitx}
+
+% ─── Colours ────────────────────────────────────────────────────────────────
+\definecolor{headerblue}{RGB}{31,73,125}
+\definecolor{rowgray}{RGB}{235,235,235}
+
+% ─── Header / Footer ────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\textcolor{headerblue}{\small Project 3 -- Constant $g_m$ Bias}}
+\lhead{\textcolor{headerblue}{\small EE Department, IIT Kanpur}}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ─── Section Formatting ──────────────────────────────────────────────────────
+\titleformat{\section}{\large\bfseries\color{headerblue}}{}{0em}{}[\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries}{}{0em}{}
+
+% ─── Hyperlinks ──────────────────────────────────────────────────────────────
+\hypersetup{colorlinks=true, linkcolor=headerblue, urlcolor=headerblue}
+
+% ─── Spacing ─────────────────────────────────────────────────────────────────
+\setlength{\parskip}{6pt}
+\setlength{\parindent}{0pt}
+\onehalfspacing
+
+% ════════════════════════════════════════════════════════════════════════════
+\begin{document}
+
+% ─── Title Page ──────────────────────────────────────────────────────────────
+\begin{titlepage}
+  \centering
+  \vspace*{1.5cm}
+
+  {\Huge\bfseries\color{headerblue} Project Report}\\[0.5cm]
+  {\LARGE\bfseries Project 3: Constant $g_m$ Bias}\\[0.3cm]
+  {\large 4-Transistor OTA via Negative Feedback}\\[1.2cm]
+
+  \rule{\linewidth}{0.5pt}\\[0.5cm]
+
+  \begin{tabular}{ll}
+    \textbf{Course}      & Analog Integrated Circuit Design \\[4pt]
+    \textbf{Department}  & Electrical Engineering \\[4pt]
+    \textbf{Institute}   & Indian Institute of Technology Kanpur \\[4pt]
+    \textbf{Tool}        & Cadence Virtuoso (Spectre Simulator) \\[4pt]
+    \textbf{Technology}  & CMOS (1.8\,V supply) \\
+  \end{tabular}
+
+  \vspace{1cm}
+  \rule{\linewidth}{0.5pt}
+
+  \vfill
+  {\large \today}
+\end{titlepage}
+
+% ─── Table of Contents ───────────────────────────────────────────────────────
+\tableofcontents
+\newpage
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Introduction}
+
+Transconductance ($g_m$) is one of the most critical parameters in analog circuit design. It
+directly governs the gain, bandwidth, and noise performance of amplifiers, filters, and
+data-converters. However, $g_m$ is inherently sensitive to process, voltage, and temperature
+(PVT) variations. A transistor biased with a fixed current will show significant $g_m$ drift
+because $g_m = \sqrt{2\mu_n C_{ox}(W/L)I_D}$ for an NMOS in saturation, where mobility
+$\mu_n$ decreases with temperature.
+
+This project addresses the problem by designing a \textbf{constant-$g_m$ bias circuit} using a
+compact \textbf{4-transistor OTA (VCCS)} architecture governed by a negative feedback servo loop.
+The feedback loop continuously senses the $g_m$ of a replica OTA and adjusts the bias such that
+
+\begin{equation}
+  G_m = \frac{I_{\text{ref}}}{2\,\Delta V}
+\end{equation}
+
+where $I_{\text{ref}}$ is a stable current reference and $2\Delta V$ is a fixed incremental
+voltage generated from a resistive voltage divider referenced to $V_{\text{DD}}$.
+
+\subsection*{Design Specifications}
+
+\begin{table}[H]
+  \centering
+  \caption{Project Performance Targets}
+  \renewcommand{\arraystretch}{1.3}
+  \begin{tabular}{lll}
+    \toprule
+    \textbf{Parameter}        & \textbf{Target}              & \textbf{Constraint} \\
+    \midrule
+    Architecture              & 4-transistor OTA (VCCS)      & --                  \\
+    Target $g_m$              & $10\,\text{mS}$              & At nominal PVT      \\
+    Control Mechanism         & Circuit-based negative FB    & Self-regulating     \\
+    $g_m$ Variation           & $< 1\%$                      & $-20\,^\circ$C to $+100\,^\circ$C \\
+    Supply Voltage ($V_{DD}$) & $1.8\,\text{V}$              & --                  \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Working Principle}
+
+\subsection{Negative Feedback Servo Loop}
+
+The core idea is borrowed from a well-known servo-loop technique for $g_m$ setting. A small
+incremental DC voltage $2\Delta V$ is applied differentially to the input of a replica 4T OTA.
+The resulting output current $2G_m\Delta V$ is compared against a stable reference current
+$I_{\text{ref}}$ using an error amplifier $G_{\text{err}}$.
+
+The error amplifier drives the common-mode bias voltage $V_{cm}$ of the OTA. If $G_m$
+increases (due to temperature drop or process variation), the output current exceeds
+$I_{\text{ref}}$, causing $V_{cm}$ to decrease, which in turn reduces $G_m$ — a classic
+negative feedback action. At steady state:
+
+\begin{equation}
+  2\,G_m\,\Delta V = I_{\text{ref}}
+  \quad\Longrightarrow\quad
+  G_m = \frac{I_{\text{ref}}}{2\,\Delta V}
+\end{equation}
+
+Since $I_{\text{ref}}$ and $\Delta V$ are both derived from stable references, $G_m$ is
+locked to a PVT-insensitive value.
+
+\subsection{Voltage Divider for $2\Delta V$}
+
+The incremental voltage is generated from a symmetric resistive divider:
+
+\begin{equation}
+  2\Delta V = V_{\text{ref}}\,\frac{R_1}{R + R_1}
+\end{equation}
+
+In the implementation, $R_0 = R_3 = 8.989\,\text{k}\Omega$ and $R_1 = R_2 = 100\,\Omega$,
+giving a small $\Delta V$ that keeps the OTA well within its linear region.
+
+\subsection{Common-Mode Feedback}
+
+A common-mode feedback (CMFB) path sets the output common-mode voltage $V_{op,om}$ to $V_{cm}$.
+The two op-amp blocks (I4 and I5) serve as error amplifiers: one ($G_{err}$) drives the $g_m$
+servo loop, while the other enforces the output common-mode level via a feedback path.
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Circuit Architecture}
+
+\subsection{Top-Level Negative Feedback Loop (negative\_fb\_loop)}
+
+The top-level schematic implements the complete servo system:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{BLOCK} -- The 4-transistor OTA replica whose $g_m$ is being regulated.
+  \item \textbf{R0, R3} ($8.989\,\text{k}\Omega$) -- Upper/lower arms of the voltage divider.
+  \item \textbf{R1, R2} ($100\,\Omega$) -- Middle taps that define $\pm\Delta V$.
+  \item \textbf{R4, R5} ($1\,\text{M}\Omega$) -- Averaging resistors for $V_{op}$ and $V_{om}$.
+  \item \textbf{I1, I2} ($94\,\mu\text{A}$) -- Reference current sources ($I_{\text{ref}}$).
+  \item \textbf{I4, I5} -- Error amplifiers (Opamp instances) closing the servo and CMFB loops.
+  \item \textbf{C1} ($2\,\text{pF}$) -- Compensation capacitor for loop stability.
+\end{itemize}
+
+\subsection{4-Transistor OTA (BLOCK)}
+
+The BLOCK is a differential-pair OTA with a current-mirror load:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{PM0, PM1} (PMOS, $W=6\,\mu$m, $L=540\,\text{nm}$, $m=24$) -- Current mirror load.
+  \item \textbf{NM0, NM1} (NMOS, $W=9\,\mu$m, $L=540\,\text{nm}$, $m=14$) -- Differential pair.
+  \item \textbf{R0} ($100\,\Omega$) -- Source degeneration resistor to linearise $G_m$.
+  \item Ports: \texttt{Vin\_Plus}, \texttt{Vin\_minus}, \texttt{Vcm\_fb}, \texttt{Vom}, \texttt{Vop}.
+\end{itemize}
+
+\subsection{Error Amplifier (Opamp -- I4 / I5)}
+
+Each error amplifier is a standard 5-transistor OTA:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{PM0, PM1} (PMOS, $W=2\,\mu$m, $L=2\,\mu$m, $m=11$) -- Current mirror load.
+  \item \textbf{NM0, NM1} (NMOS, $W=2\,\mu$m, $L=2\,\mu$m, $m=11$) -- Differential pair.
+  \item \textbf{I0} ($20\,\mu\text{A}$) -- Tail current source.
+  \item Ports: \texttt{Vin\_plus}, \texttt{Vin\_minus}, \texttt{Vout}.
+\end{itemize}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Operating Point Analysis}
+
+All operating points were extracted using Cadence Spectre DC analysis at nominal temperature
+($27\,^\circ$C) and $V_{DD} = 1.8\,\text{V}$.
+
+\subsection{4T OTA (BLOCK) -- Transistor Operating Points}
+
+\begin{table}[H]
+  \centering
+  \caption{DC Operating Points -- 4T OTA (BLOCK)}
+  \renewcommand{\arraystretch}{1.4}
+  \begin{tabularx}{\textwidth}{lXXXX}
+    \toprule
+    \rowcolor{headerblue}
+    \textcolor{white}{\textbf{Parameter}}
+      & \textcolor{white}{\textbf{PM0 (PMOS)}}
+      & \textcolor{white}{\textbf{PM1 (PMOS)}}
+      & \textcolor{white}{\textbf{NM0 (NMOS)}}
+      & \textcolor{white}{\textbf{NM1 (NMOS)}} \\
+    \midrule
+    \rowcolor{rowgray}
+    Role              & Mirror Load & Mirror Load & Diff. Pair & Diff. Pair \\
+    Region            & Saturation  & Saturation  & Saturation & Saturation \\
+    \rowcolor{rowgray}
+    $V_{GS}$ (mV)    & $-831.1$    & $-831.1$    & $+758.9$   & $+739.1$   \\
+    $V_{DS}$ (mV)    & $-796.9$    & $-884.1$    & $+792.5$   & $+705.3$   \\
+    \rowcolor{rowgray}
+    $V_{TH}$ (mV)    & $-464.2$    & $-464.2$    & $+560.0$   & $+560.0$   \\
+    $V_{DSAT}$ (mV)  & $-324.1$    & $-324.1$    & $+204.8$   & $+190.4$   \\
+    \rowcolor{rowgray}
+    $I_{DS}$ ($\mu$A) & $-1050.1$ & $-1056.2$   & $+1144.0$  & $+962.2$   \\
+    $g_m$ (mS)       & $5.028$     & $5.058$     & $9.249$    & $8.480$    \\
+    \rowcolor{rowgray}
+    $g_{ds}$ ($\mu$S) & $73.38$   & $66.43$     & $73.30$    & $69.94$    \\
+    $g_m/I_D$        & $4.789$     & $4.789$     & $8.084$    & $8.813$    \\
+    \rowcolor{rowgray}
+    $r_{out}$ (k$\Omega$) & $13.63$ & $15.05$  & $13.64$    & $14.30$    \\
+    Self Gain ($g_m r_{out}$) & $68.5$ & $76.1$ & $126.2$   & $121.2$    \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\textbf{Observations:}
+\begin{itemize}[leftmargin=1.5em]
+  \item All four transistors are firmly in \textbf{saturation}, as required for proper OTA operation.
+  \item The NMOS differential pair (NM0/NM1) exhibits higher $g_m$ ($\approx 8.5$--$9.2\,\text{mS}$)
+        than the PMOS mirror load ($\approx 5.0\,\text{mS}$), consistent with the
+        higher electron mobility.
+  \item The $g_m/I_D$ ratio for NMOS ($\approx 8$--$8.8$) indicates moderate inversion, while
+        PMOS ($\approx 4.8$) operates at a higher overdrive, which is expected for a current
+        mirror with wide transistors.
+  \item Source degeneration ($R_0 = 100\,\Omega$) linearises the overall $G_m$ at the cost of
+        a slight reduction in effective transconductance.
+\end{itemize}
+
+% ──────────────────────────────────────────────────────────────────────────
+\subsection{Error Amplifier I5 -- Transistor Operating Points}
+
+\begin{table}[H]
+  \centering
+  \caption{DC Operating Points -- Error Amplifier I5 (Opamp)}
+  \renewcommand{\arraystretch}{1.4}
+  \begin{tabularx}{\textwidth}{lXXXX}
+    \toprule
+    \rowcolor{headerblue}
+    \textcolor{white}{\textbf{Parameter}}
+      & \textcolor{white}{\textbf{PM0 (PMOS)}}
+      & \textcolor{white}{\textbf{PM1 (PMOS)}}
+      & \textcolor{white}{\textbf{NM0 (NMOS)}}
+      & \textcolor{white}{\textbf{NM1 (NMOS)}} \\
+    \midrule
+    \rowcolor{rowgray}
+    Role              & Mirror Load & Mirror Load & Diff. Pair & Diff. Pair \\
+    Region            & Saturation  & Saturation  & Saturation & Saturation \\
+    \rowcolor{rowgray}
+    $V_{GS}$ (mV)    & $-598.6$    & $-598.6$    & $+582.4$   & $+583.3$   \\
+    $V_{DS}$ (mV)    & $-598.6$    & $-831.1$    & $+824.3$   & $+591.8$   \\
+    \rowcolor{rowgray}
+    $V_{TH}$ (mV)    & $-437.3$    & $-437.2$    & $+559.4$   & $+559.5$   \\
+    $V_{DSAT}$ (mV)  & $-167.8$    & $-167.8$    & $+97.4$    & $+97.9$    \\
+    \rowcolor{rowgray}
+    $I_{DS}$ ($\mu$A) & $-9.97$   & $-10.03$    & $+9.97$    & $+10.03$   \\
+    $g_m$ ($\mu$S)   & $98.81$     & $99.30$     & $174.3$    & $175.1$    \\
+    \rowcolor{rowgray}
+    $g_{ds}$ (nS)    & $281.2$     & $247.2$     & $351.9$    & $386.3$    \\
+    $g_m/I_D$        & $9.91$      & $9.90$      & $17.48$    & $17.46$    \\
+    \rowcolor{rowgray}
+    $r_{out}$ (M$\Omega$) & $3.56$ & $4.05$   & $2.84$     & $2.59$     \\
+    Self Gain         & $351.4$     & $401.7$     & $495.3$    & $453.3$    \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% ──────────────────────────────────────────────────────────────────────────
+\subsection{Error Amplifier I4 -- Transistor Operating Points}
+
+\begin{table}[H]
+  \centering
+  \caption{DC Operating Points -- Error Amplifier I4 (Opamp)}
+  \renewcommand{\arraystretch}{1.4}
+  \begin{tabularx}{\textwidth}{lXXXX}
+    \toprule
+    \rowcolor{headerblue}
+    \textcolor{white}{\textbf{Parameter}}
+      & \textcolor{white}{\textbf{PM0 (PMOS)}}
+      & \textcolor{white}{\textbf{PM1 (PMOS)}}
+      & \textcolor{white}{\textbf{NM0 (NMOS)}}
+      & \textcolor{white}{\textbf{NM1 (NMOS)}} \\
+    \midrule
+    \rowcolor{rowgray}
+    Role              & Mirror Load & Mirror Load & Diff. Pair  & Output/Tail \\
+    Region            & Saturation  & Saturation  & Saturation  & Saturation* \\
+    \rowcolor{rowgray}
+    $V_{GS}$ (mV)    & $-656.4$    & $-656.4$    & $+615.8$    & $+528.7$   \\
+    $V_{DS}$ (mV)    & $-656.4$    & $-839.7$    & $+756.3$    & $+573.1$   \\
+    \rowcolor{rowgray}
+    $V_{TH}$ (mV)    & $-437.2$    & $-437.2$    & $+561.9$    & $+562.0$   \\
+    $V_{DSAT}$ (mV)  & $-211.0$    & $-211.1$    & $+116.7$    & $+71.6$    \\
+    \rowcolor{rowgray}
+    $I_{DS}$ ($\mu$A) & $-16.60$  & $-16.67$    & $+16.60$    & $+3.40$    \\
+    $g_m$ ($\mu$S)   & $129.7$     & $130.2$     & $259.9$     & $68.9$     \\
+    \rowcolor{rowgray}
+    $g_{ds}$ (nS)    & $414.3$     & $364.7$     & $534.8$     & $155.7$    \\
+    $g_m/I_D$        & $7.81$      & $7.81$      & $15.66$     & $20.27$    \\
+    \rowcolor{rowgray}
+    $r_{out}$ (M$\Omega$) & $2.41$ & $2.74$   & $1.87$      & $6.42$     \\
+    Self Gain         & $313.1$     & $356.9$     & $486.0$     & $442.4$    \\
+    \bottomrule
+  \end{tabularx}
+  \begin{flushleft}
+    \small *NM1 in I4 operates at region code 3 (near saturation/subthreshold boundary)
+    due to its low $I_{DS} = 3.4\,\mu$A compared to the main pair.
+  \end{flushleft}
+\end{table}
+
+\textbf{Observations on Amplifiers I4 and I5:}
+\begin{itemize}[leftmargin=1.5em]
+  \item Both amplifiers are biased at low currents ($\approx 10$--$17\,\mu$A per branch),
+        resulting in high output resistances in the M$\Omega$ range, which translates to
+        large DC gain well suited for the feedback loop.
+  \item The very high self-gain values (300--495) indicate that both op-amps provide
+        sufficient loop gain to enforce $G_m = I_{\text{ref}}/2\Delta V$ accurately.
+  \item NMOS transistors in both amplifiers operate in moderate inversion
+        ($g_m/I_D \approx 15$--$20$), prioritising gain efficiency over speed.
+  \item $V_{DSAT}$ values are small ($< 220\,\text{mV}$), ensuring adequate output
+        swing headroom within the $1.8\,\text{V}$ supply.
+\end{itemize}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Simulation Results and Specification Status}
+
+\subsection{$g_m$ vs. Temperature — Observed Result}
+
+A DC sweep simulation was performed over temperature from $-20\,^\circ$C to $+100\,^\circ$C
+using Cadence Spectre. The transconductance was probed directly from the device operating
+point of NM0 (\texttt{OS("/I0/NM0" "gm")}) in the closed-loop \texttt{negative\_fb\_loop}
+schematic.
+
+\begin{table}[H]
+  \centering
+  \caption{Simulated $g_m$ vs.\ temperature — actual results}
+  \renewcommand{\arraystretch}{1.3}
+  \begin{tabular}{cccc}
+    \toprule
+    \textbf{Temp ($^\circ$C)} & \textbf{$g_m$ (mS)} & \textbf{Deviation from 27$^\circ$C} & \textbf{Spec ($<1\%$)} \\
+    \midrule
+    $-20$  & $9.80$ & $+5.95\%$  & \textcolor{red}{\textbf{FAIL}} \\
+    $0$    & $9.55$ & $+3.24\%$  & \textcolor{red}{\textbf{FAIL}} \\
+    $27$   & $9.25$ & Reference  & --                              \\
+    $50$   & $8.90$ & $-3.78\%$  & \textcolor{red}{\textbf{FAIL}} \\
+    $75$   & $8.55$ & $-7.57\%$  & \textcolor{red}{\textbf{FAIL}} \\
+    $100$  & $8.20$ & $-11.35\%$ & \textcolor{red}{\textbf{FAIL}} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\textbf{Result:} The $g_m$ varies from $\approx 9.80\,\text{mS}$ at $-20\,^\circ$C to
+$\approx 8.20\,\text{mS}$ at $+100\,^\circ$C — a total variation of $\mathbf{\sim 19\%}$,
+far exceeding the target of $< 1\%$. The design \textbf{does not meet} the specification.
+
+\subsection{Discussion — Why the $< 1\%$ Specification is Not Met}
+
+The dominant reason the specification is not achieved is the \textbf{temperature dependence
+of carrier mobility}. In a MOSFET biased at a fixed drain current, the transconductance is:
+\[
+  g_m = \sqrt{2\,\mu_n(T)\,C_{ox}\,(W/L)\,I_{DS}}
+\]
+where $\mu_n(T) \propto T^{-3/2}$ decreases with rising temperature. Since the bias current
+$I_{DS}$ in the 4T OTA is set by the tail source — which itself has a finite temperature
+coefficient in a real implementation — $g_m$ falls nearly linearly with temperature, producing
+the observed $\sim 19\%$ drift.
+
+The negative feedback servo loop is intended to counteract this by increasing $I_{DS}$
+(via raising $V_{cm\_fb}$) as temperature rises, so that the product
+$\mu_n(T) \cdot I_{DS}(T)$ remains constant. However, achieving this requires the loop to
+track the mobility variation \emph{precisely} and in \emph{real time}, which places a
+stringent demand on the loop gain and the accuracy of $I_{\text{ref}}$ and $\Delta V$.
+
+In this implementation, the available loop correction is insufficient to fully compensate
+the steep mobility roll-off across the $-20\,^\circ$C to $+100\,^\circ$C range. Additionally,
+polysilicon resistors used to generate $\Delta V$ carry a non-negligible temperature
+coefficient ($\approx +1500\,\text{ppm/}^\circ$C), which causes $\Delta V$ — and hence
+the target locking point $G_m = I_{\text{ref}}/2\Delta V$ — to shift slightly with
+temperature, further degrading the regulation accuracy. These two effects together account
+for the observed gap between the simulated performance and the $< 1\%$ target.
+
+\subsection{Common-Mode Voltages (net6/net8) vs. Temperature}
+
+The feedback node voltages (net6, net8) vary in the range $965$--$980\,\text{mV}$ across
+temperature, showing a non-monotonic U-shaped profile. Ideally, if the servo loop were
+functioning correctly, $V_{cm\_fb}$ should sweep significantly (by several hundred mV) to
+actively compensate the falling $g_m$. The narrow variation observed ($\sim 15\,\text{mV}$)
+strongly suggests the loop is not exerting meaningful control over the bias point.
+
+
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Design Calculations}
+
+\subsection{Correct $g_m$ Locking Point}
+
+For the servo to lock $G_m = 10\,\text{mS}$, the required $2\Delta V$ with
+$I_{\text{ref}} = 94\,\mu\text{A}$ is:
+\begin{equation}
+  2\Delta V_{\text{required}} = \frac{I_{\text{ref}}}{G_m}
+  = \frac{94\,\mu\text{A}}{10\,\text{mS}} = 9.4\,\text{mV}
+\end{equation}
+
+The current resistor values produce:
+\begin{equation}
+  2\Delta V_{\text{actual}} = 1.8\,\text{V} \times \frac{100}{9089} \approx 19.8\,\text{mV}
+  \quad\Rightarrow\quad G_{m,\text{locked}} \approx 4.75\,\text{mS}
+\end{equation}
+
+To correct this without changing $I_{\text{ref}}$, $R_1$ should be reduced:
+\begin{equation}
+  R_1 = \frac{2\Delta V_{\text{required}}}{V_{DD} - 2\Delta V_{\text{required}}}
+        \times R
+  = \frac{9.4\,\text{mV}}{1.8\,\text{V} - 9.4\,\text{mV}} \times 8989\,\Omega
+  \approx 47\,\Omega
+\end{equation}
+
+Alternatively, $I_{\text{ref}}$ can be increased to $198\,\mu\text{A}$ keeping the
+existing resistor values.
+
+\subsection{Effective $G_m$ with Source Degeneration}
+
+With source degeneration resistor $R_S = 100\,\Omega$ (split: $50\,\Omega$ per side),
+the effective OTA transconductance is:
+\begin{equation}
+  G_{m,\text{eff}} = \frac{g_m}{1 + g_m\,(R_S/2)}
+  = \frac{9.25\,\text{mS}}{1 + 9.25\,\text{mS} \times 50\,\Omega}
+  \approx 8.13\,\text{mS}
+\end{equation}
+
+The servo loop must account for this degeneration when locking $G_m$ to the target.
+
+\subsection{Output Resistance of 4T OTA}
+
+\begin{equation}
+  R_{\text{out}} = r_{o,\text{NM1}} \,\|\, r_{o,\text{PM1}}
+  = 14.30\,\text{k}\Omega \,\|\, 15.05\,\text{k}\Omega
+  \approx 7.33\,\text{k}\Omega
+\end{equation}
+
+\subsection{Required Loop Gain for $< 1\%$ Regulation}
+
+To suppress the inherent $19\%$ open-loop variation down to $< 1\%$:
+\begin{equation}
+  \frac{\Delta G_m}{G_m}\bigg|_{\text{CL}} =
+  \frac{\Delta G_m / G_m|_{\text{OL}}}{1 + T}
+  < 1\%
+  \quad\Rightarrow\quad
+  1 + T > \frac{19\%}{1\%} = 19
+  \quad\Rightarrow\quad T > 18
+\end{equation}
+
+With self-gain of NM0 $\approx 126$ and the error amplifier gain $> 300$, the available
+loop gain is theoretically sufficient. The issue lies in how effectively this gain is
+utilised in the actual feedback path.
+
+
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Summary and Conclusion}
+
+This project involved the design and simulation of a constant-$g_m$ bias circuit using a
+compact 4-transistor OTA with a negative feedback servo loop in Cadence Virtuoso Spectre.
+
+\subsection*{What Was Achieved}
+\begin{itemize}[leftmargin=1.5em]
+  \item A 4T OTA with NMOS differential pair and PMOS mirror load was successfully designed
+        with all transistors biased in \textbf{saturation} at nominal conditions
+        ($V_{DD} = 1.8\,\text{V}$, $27\,^\circ$C).
+  \item Two high-gain error amplifiers (I4, I5) with individual transistor self-gain
+        $> 300$ were designed and verified through operating point extraction.
+  \item The complete servo loop schematic — including voltage divider, reference current
+        sources, CMFB path, and compensation capacitor — was implemented in Virtuoso.
+  \item Temperature sweep simulation from $-20\,^\circ$C to $+100\,^\circ$C was performed
+        and the $g_m$ characteristics were extracted and analysed.
+\end{itemize}
+
+\subsection*{What Was Not Achieved and Why}
+\begin{itemize}[leftmargin=1.5em]
+  \item The $< 1\%$ $g_m$ variation specification was \textbf{not met}. The simulated
+        device-level $g_m$ varies by $\approx 19\%$ across the temperature range.
+  \item The root causes identified are: (a) a mismatch between $I_{\text{ref}}$ and
+        $2\Delta V$ that sets the wrong locking point; (b) the servo loop may not be
+        actively regulating the bias — evidenced by the near-constant $V_{cm\_fb}$
+        across temperature; (c) the probed quantity ($g_{m,\text{NM0}}$) is the
+        device-level parameter, not the closed-loop $G_m$ regulated by the servo.
+  \item These are \textbf{correctable issues} and do not indicate a fundamental flaw
+        in the circuit topology, which is consistent with the reference design.
+\end{itemize}
+
+\subsection*{Learning Outcomes}
+The project provided hands-on experience in:
+hierarchical schematic design in Cadence Virtuoso,
+transistor-level operating point analysis using Spectre,
+understanding PVT sensitivity of $g_m$ and the role of negative feedback in suppressing it,
+and systematic debugging of analog feedback loops — including identifying
+loop connectivity issues, gain-bandwidth tradeoffs, and measurement methodology errors.
+
+The fundamental circuit topology is sound and consistent with the reference design.
+With further tuning of the resistive divider, a bandgap-referenced $I_{\text{ref}}$,
+and loop stability verification via AC analysis, the circuit is expected to achieve
+the $< 1\%$ regulation target.
+
+% ════════════════════════════════════════════════════════════════════════════
+\section*{References}
+\addcontentsline{toc}{section}{References}
+
+\begin{enumerate}[leftmargin=2em]
+  \item B. Razavi, \textit{Design of Analog CMOS Integrated Circuits}, 2nd ed.,
+        McGraw-Hill, 2016.
+  \item F. Silveira, D. Flandre, and P. G. A. Jespers, ``A $g_m/I_D$ based methodology
+        for the design of CMOS analog circuits and its application to the synthesis of a
+        silicon-on-insulator micropower OTA,'' \textit{IEEE J. Solid-State Circuits},
+        vol.~31, no.~9, pp.~1314--1319, Sep.~1996.
+  \item P. R. Kinget, ``Device mismatch and tradeoffs in the design of analog circuits,''
+        \textit{IEEE J. Solid-State Circuits}, vol.~40, no.~6, pp.~1212--1224, Jun.~2005.
+  \item Reference design: \textit{Low-Transistor-Count Constant-$g_m$ Circuits}
+        (as provided in project brief).
+\end{enumerate}
+
+\end{document}
