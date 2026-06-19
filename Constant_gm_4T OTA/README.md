@@ -73,21 +73,21 @@ The complete system consists of:
 
 The replica OTA generates an output current:
 
-[
+
 I_{out}=2g_m\Delta V
-]
+
 
 The feedback loop forces:
 
-[
+
 I_{out}=I_{ref}
-]
+
 
 Therefore,
 
-[
+
 g_m=\frac{I_{ref}}{2\Delta V}
-]
+
 
 which makes the transconductance primarily dependent on the reference current and reference voltage rather than transistor parameters.
 
@@ -103,19 +103,6 @@ which makes the transconductance primarily dependent on the reference current an
 | Biasing Method    | Constant-gm Negative Feedback |
 | Temperature Range | -20°C to 100°C                |
 | Simulation Tool   | Cadence Virtuoso              |
-
----
-
-## Operating Point Results
-
-### Constant-gm OTA
-
-| Device | IDS (mA) | VGS (V) | VDS (V) | gm (mS) |
-| ------ | -------- | ------- | ------- | ------- |
-| NM0    | 1.144    | 0.759   | 0.792   | 9.249   |
-| NM1    | 0.962    | 0.739   | 0.705   | 8.480   |
-| PM0    | 1.050    | 0.831   | 0.797   | 5.028   |
-| PM1    | 1.056    | 0.831   | 0.884   | 5.058   |
 
 ---
 
@@ -155,6 +142,4 @@ which makes the transconductance primarily dependent on the reference current an
 
 ---
 
-
-Indian Institute of Technology Kanpur
 
